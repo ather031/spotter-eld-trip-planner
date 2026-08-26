@@ -22,26 +22,23 @@ Keep it **isolated** from VDC:
 
 ### Phase 5 — go live (Vultr)
 
-Deploy configs live in [`deploy/`](deploy/README.md). On the VPS as a sudo user:
+**Live URL:** https://assessment.vehicledailycheck.com  
 
-```bash
-# 1) DNS first: A record assessment.vehicledailycheck.com → 78.141.194.242
-# 2) Install (from your laptop):
-ssh vdc
-sudo bash /tmp/spotter_eld_one_shot_install.sh
-# (installer already uploaded to /tmp, or:)
-# curl -fsSL https://raw.githubusercontent.com/ather031/spotter-eld-trip-planner/main/deploy/scripts/one_shot_install.sh | sudo bash
-```
+Full runbook: [`docs/deploy/assessment-vehicledailycheck.md`](docs/deploy/assessment-vehicledailycheck.md)
 
-Isolation: gunicorn **8001**, DB **`spotter_eld`**, root **`/var/www/spotter-eld/`**, unit **`spotter-eld-api.service`**. Does not edit VDC nginx/systemd/env.
+| Piece | Value |
+|-------|--------|
+| gunicorn | `127.0.0.1:8001` (VDC keeps `8000`) |
+| DB | `spotter_eld` |
+| Code | `/var/www/spotter-eld/` |
+| systemd | `spotter-eld-api.service` (`www-data`) |
+| Redeploy | `cd /var/www/spotter-eld/repo && sudo bash scripts/deploy-spotter-eld.sh` |
 
-Suggested layout on the VPS:
+Frontend production uses **same-origin** `/api` (empty `VITE_API_BASE_URL`).
 
-- nginx: `assessment.vehicledailycheck.com` → static React `web/` + `/api/` → gunicorn `:8001`
-- One HTTPS cert (Let’s Encrypt) on that subdomain
-- In the Loom: *“Deployed on a dedicated subdomain so you can test the hosted version directly.”*
+Loom note: *“Dedicated subdomain on my VPS, isolated from Vehicle Daily Check.”*
 
-The brief suggests Vercel/Railway — that is a **suggestion**, not a hard requirement unless Spotter’s PDF says otherwise. A clean HTTPS demo URL matters more.
+The brief suggests Vercel/Railway — that is a **suggestion**. A clean HTTPS demo URL matters more.
 
 ## Database name (create this)
 

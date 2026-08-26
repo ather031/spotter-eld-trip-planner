@@ -46,7 +46,7 @@ export async function planTrip(
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') throw err
     throw new ApiError(
-      'Cannot reach the API. Make sure Django is running on port 8000 (or set VITE_API_BASE_URL).',
+      'Cannot reach the API. Check that Django is running (local :8000 or production /api).',
       0,
       'network_error',
     )

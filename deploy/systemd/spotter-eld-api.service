@@ -5,8 +5,8 @@ Wants=postgresql.service
 
 [Service]
 Type=simple
-User=deploy
-Group=deploy
+User=www-data
+Group=www-data
 WorkingDirectory=/var/www/spotter-eld/api
 EnvironmentFile=/var/www/spotter-eld/api/.env
 ExecStart=/var/www/spotter-eld/api/.venv/bin/gunicorn \
