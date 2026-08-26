@@ -20,9 +20,24 @@ Keep it **isolated** from VDC:
 | Env / secrets | Separate `.env` |
 | Code | This repo only |
 
+### Phase 5 — go live (Vultr)
+
+Deploy configs live in [`deploy/`](deploy/README.md). On the VPS as a sudo user:
+
+```bash
+# 1) DNS first: A record assessment.vehicledailycheck.com → 78.141.194.242
+# 2) Install (from your laptop):
+ssh vdc
+sudo bash /tmp/spotter_eld_one_shot_install.sh
+# (installer already uploaded to /tmp, or:)
+# curl -fsSL https://raw.githubusercontent.com/ather031/spotter-eld-trip-planner/main/deploy/scripts/one_shot_install.sh | sudo bash
+```
+
+Isolation: gunicorn **8001**, DB **`spotter_eld`**, root **`/var/www/spotter-eld/`**, unit **`spotter-eld-api.service`**. Does not edit VDC nginx/systemd/env.
+
 Suggested layout on the VPS:
 
-- nginx: `assessment.vehicledailycheck.com` → static React `dist/` + `/api/` → gunicorn
+- nginx: `assessment.vehicledailycheck.com` → static React `web/` + `/api/` → gunicorn `:8001`
 - One HTTPS cert (Let’s Encrypt) on that subdomain
 - In the Loom: *“Deployed on a dedicated subdomain so you can test the hosted version directly.”*
 
