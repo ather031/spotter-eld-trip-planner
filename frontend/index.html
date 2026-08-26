@@ -1,7 +1,8 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
@@ -14,7 +15,8 @@
       href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <title>RouteLog — HOS Trip Planner</title>
+    <!-- ASCII hyphen in <title>: avoids mojibake when nginx omits charset= -->
+    <title>RouteLog - HOS Trip Planner</title>
   </head>
   <body>
     <div id="root"></div>

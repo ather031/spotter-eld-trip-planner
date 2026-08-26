@@ -133,6 +133,16 @@ Property-carrying, **70 hrs / 8 days**: 11h drive, 14h window, 30-min after 8h d
 | Multi-day haul | Chicago → Denver → LA | 5 h |
 | High cycle used | Chicago → Indy → Cincinnati | 68 h |
 
+### Loom / QA checklist
+
+Click each demo preset and confirm:
+
+1. **Short same-day** — map + stop pins, duty timeline, **1** daily log sheet; row totals ≈ **24:00**.
+2. **Multi-day haul** — multiple log sheets (day tabs); fuel and rest markers on map/timeline.
+3. **High cycle used** — **34h restart** stop/event visible; cycle warning in the plan banner.
+
+Also: log sheets should stay paper-like (USDOT header, 4-row grid, remarks) on desktop and at mobile width (horizontal scroll OK).
+
 ## Out of scope
 
 No auth product features, VDC coupling, paid map APIs, or ELD hardware.
