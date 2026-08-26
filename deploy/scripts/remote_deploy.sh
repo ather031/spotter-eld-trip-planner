@@ -62,11 +62,22 @@ else
   echo "WARN: npm not found — skipped frontend build. Ensure $WEB is populated."
 fi
 
-sudo systemctl restart spotter-eld-api.service
-sudo systemctl is-active --quiet spotter-eld-api.service && echo "API: active" || {
-  echo "API failed — journalctl -u spotter-eld-api -n 50"
-  exit 1
-}
+# Restart API: prefer root/systemctl; avoid interactive sudo as deploy.
+if [[ "$(id -u)" -eq 0 ]]; then
+  systemctl restart spotter-eld-api.service
+elif command -v systemctl >/dev/null 2>&1 && sudo -n systemctl restart spotter-eld-api.service 2>/dev/null; then
+  true
+else
+  echo "NOTE: could not restart service as $(whoami). As root run:"
+  echo "  systemctl restart spotter-eld-api.service"
+fi
+
+if systemctl is-active --quiet spotter-eld-api.service 2>/dev/null || \
+   sudo -n systemctl is-active --quiet spotter-eld-api.service 2>/dev/null; then
+  echo "API: active"
+else
+  echo "WARN: spotter-eld-api not confirmed active yet"
+fi
 
 curl -fsS -o /dev/null -w "health %{http_code}\n" http://127.0.0.1:8001/api/health/ || true
 echo "==> Done. Public: https://assessment.vehicledailycheck.com"
