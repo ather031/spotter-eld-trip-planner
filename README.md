@@ -2,29 +2,25 @@
 
 HOS-compliant trip planning for property-carrying drivers: route map, labeled stops, duty timeline, and FMCSA-style daily ELD log sheets.
 
-**Demo:** [https://assessment.vehicledailycheck.com](https://assessment.vehicledailycheck.com)
-
 Stack: Django REST Framework + React (Vite, TypeScript, Tailwind, Leaflet).
 
-## Production deployment
+## Production
 
-Hosted on a dedicated subdomain of the existing [Vehicle Daily Check](https://vehicledailycheck.com/) VPS, fully isolated from the production VDC application.
+**Demo:** [https://assessment.vehicledailycheck.com](https://assessment.vehicledailycheck.com)
 
 | Component | Configuration |
 |-----------|----------------|
 | URL | `https://assessment.vehicledailycheck.com` |
 | Process | `spotter-eld-api.service` (gunicorn on `127.0.0.1:8001`) |
-| Database | Postgres `spotter_eld` (separate from VDC) |
+| Database | Postgres `spotter_eld` |
 | Application root | `/var/www/spotter-eld/` |
-| Frontend | Same-origin `/api` (empty `VITE_API_BASE_URL`) |
+| Frontend | Same-origin `/api` |
 
 Deploy runbook: [`docs/deploy/assessment-vehicledailycheck.md`](docs/deploy/assessment-vehicledailycheck.md)
 
 ```bash
 cd /var/www/spotter-eld/repo && sudo bash scripts/deploy-spotter-eld.sh
 ```
-
-The deploy script updates only Spotter paths and services. It does not restart Vehicle Daily Check or modify VDC configuration.
 
 ## Local database
 
@@ -121,4 +117,4 @@ Log sheets should remain readable on desktop and at mobile widths (horizontal sc
 
 ## Scope exclusions
 
-Authentication product features, Vehicle Daily Check integration, paid mapping APIs, and ELD hardware connectivity are out of scope.
+Authentication, paid mapping APIs, and ELD hardware connectivity are out of scope.
