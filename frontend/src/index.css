@@ -1,0 +1,116 @@
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+@theme {
+  --font-display: "Barlow Condensed", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --color-ink: #121820;
+  --color-slate-panel: #1a2332;
+  --color-slate-muted: #2a3548;
+  --color-steel: #3d5a80;
+  --color-signal: #e8a317;
+  --color-signal-dim: #c4890f;
+  --color-fog: #e8eef4;
+  --color-mist: #c5d0dc;
+  --color-ok: #2f9e6b;
+  --color-warn: #d97706;
+  --color-danger: #c44b4b;
+  --color-drive: #2b6cb0;
+  --color-onduty: #b7791f;
+  --color-offduty: #64748b;
+  --color-sleeper: #5b4b8a;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  background:
+    radial-gradient(ellipse 80% 50% at 10% -10%, rgba(61, 90, 128, 0.18), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(232, 163, 23, 0.12), transparent 50%),
+    linear-gradient(165deg, #f4f7fa 0%, #e6edf4 45%, #dfe8f0 100%);
+  background-attachment: fixed;
+}
+
+/* Subtle road-grid atmosphere */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image:
+    linear-gradient(#1a2332 1px, transparent 1px),
+    linear-gradient(90deg, #1a2332 1px, transparent 1px);
+  background-size: 48px 48px;
+  z-index: 0;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+}
+
+.leaflet-container {
+  font-family: var(--font-sans);
+  background: #d5dde6;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.45s ease-out both;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 1.4s ease-in-out infinite;
+}
+
+/* Keep list scrollbars visually consistent across panels */
+.trip-panel-scroll {
+  scrollbar-gutter: stable;
+}
+
+@media print {
+  body {
+    background: #fff !important;
+  }
+
+  body::before {
+    display: none;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  #eld-log-sheets svg {
+    max-width: 100% !important;
+  }
+}
+
