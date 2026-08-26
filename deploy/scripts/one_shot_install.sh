@@ -84,6 +84,11 @@ touch /var/log/spotter-eld/gunicorn-access.log /var/log/spotter-eld/gunicorn-err
 chown -R "$DEPLOY_USER:$DEPLOY_USER" /var/log/spotter-eld
 
 sudo -u "$DEPLOY_USER" bash "$ROOT/repo/deploy/scripts/remote_deploy.sh"
+systemctl restart spotter-eld-api.service
+systemctl is-active --quiet spotter-eld-api.service && echo "API: active" || {
+  echo "API failed — journalctl -u spotter-eld-api -n 80 --no-pager"
+  exit 1
+}
 
 echo "==> [6/7] Nginx (HTTP first for ACME)"
 cat > "/etc/nginx/sites-available/${DOMAIN}.conf" <<EOF
