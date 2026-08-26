@@ -2,7 +2,7 @@
 
 Django + React take-home: HOS-compliant trip plans with route map, stops, and paper-style daily ELD logs.
 
-> **Status:** Phase 5 deploy configs ready · live URL target `https://assessment.vehicledailycheck.com`
+> **Status:** Live at [https://assessment.vehicledailycheck.com](https://assessment.vehicledailycheck.com) · Phase 5 done
 
 ## Hosting recommendation (your VDC server)
 
