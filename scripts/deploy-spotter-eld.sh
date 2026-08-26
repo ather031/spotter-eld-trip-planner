@@ -105,10 +105,24 @@ if [[ -f "/etc/nginx/sites-enabled/${DOMAIN}.conf" ]] || \
   systemctl reload nginx
 fi
 
-echo "==> smoke checks"
-curl -fsS -o /dev/null -w "local health %{http_code}\n" http://127.0.0.1:8001/api/health/ || true
-curl -fsS -o /dev/null -w "public  %{http_code}\n" "https://${DOMAIN}/api/health/" 2>/dev/null \
-  || curl -fsS -o /dev/null -w "http    %{http_code}\n" "http://${DOMAIN}/api/health/" 2>/dev/null \
+echo "==> smoke checks (wait for gunicorn)"
+ok=0
+for i in 1 2 3 4 5 6 7 8 9 10; do
+  if curl -fsS -o /dev/null http://127.0.0.1:8001/api/health/; then
+    echo "local health 200 (attempt $i)"
+    ok=1
+    break
+  fi
+  sleep 1
+done
+if [[ "$ok" -ne 1 ]]; then
+  echo "ERROR: API did not become healthy on :8001"
+  journalctl -u spotter-eld-api -n 80 --no-pager || true
+  exit 1
+fi
+
+curl -fsS -o /dev/null -w "public  %{http_code}\n" "https://${DOMAIN}/api/health/" \
+  || curl -fsS -o /dev/null -w "http    %{http_code}\n" "http://${DOMAIN}/api/health/" \
   || true
 
 echo "==> Deploy complete → https://${DOMAIN}"
