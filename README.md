@@ -24,6 +24,8 @@ cd /var/www/spotter-eld/repo && sudo bash scripts/deploy-spotter-eld.sh
 
 ## Local database
 
+**Development-only defaults below.** Production credentials are supplied via environment variables on the server (`/var/www/spotter-eld/api/.env`) and are **not** committed to this repository. `.env` files are gitignored.
+
 Database name: `spotter_eld`
 
 ```sql
@@ -37,7 +39,7 @@ CREATE DATABASE spotter_eld;
 createdb spotter_eld
 ```
 
-Default connection (override in `backend/.env`):
+Local connection defaults (override in `backend/.env` — never use these in production):
 
 | Variable | Default |
 |----------|---------|
@@ -47,7 +49,7 @@ Default connection (override in `backend/.env`):
 | `POSTGRES_HOST` | `127.0.0.1` |
 | `POSTGRES_PORT` | `5432` |
 
-Alternatively: `DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/spotter_eld`.
+Alternatively: `DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/spotter_eld` (local only).
 
 The API does not persist trip plans; Postgres is used for Django system tables and parity with production. Do not use SQLite.
 
