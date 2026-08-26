@@ -145,9 +145,9 @@ interface EldLogSheetProps {
 
 export function EldLogSheet({
   day,
-  driverName = 'Assessment Driver',
-  carrierName = 'RouteLog Demo Carrier',
-  officeAddress = 'Assessment · property-carrying 70/8',
+  driverName = 'Demo Driver',
+  carrierName = 'RouteLog Carrier',
+  officeAddress = 'Property-carrying · 70/8 cycle',
   fromLabel,
   toLabel,
   vehicleNumber = '100 / 200',

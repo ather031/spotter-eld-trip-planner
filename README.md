@@ -1,52 +1,34 @@
 # Spotter ELD Trip Planner
 
-Django + React take-home: HOS-compliant trip plans with route map, stops, and paper-style daily ELD logs.
+HOS-compliant trip planning for property-carrying drivers: route map, labeled stops, duty timeline, and FMCSA-style daily ELD log sheets.
 
-> **Status:** Live at [https://assessment.vehicledailycheck.com](https://assessment.vehicledailycheck.com) · Phase 5 done
+**Demo:** [https://assessment.vehicledailycheck.com](https://assessment.vehicledailycheck.com)
 
-## Hosting recommendation (your VDC server)
+Stack: Django REST Framework + React (Vite, TypeScript, Tailwind, Leaflet).
 
-Using your existing [Vehicle Daily Check](https://vehicledailycheck.com/) infrastructure is fine for this assessment — and usually smarter than burning hours on a new PaaS.
+## Production deployment
 
-**Recommended URL:** `https://assessment.vehicledailycheck.com`
+Hosted on a dedicated subdomain of the existing [Vehicle Daily Check](https://vehicledailycheck.com/) VPS, fully isolated from the production VDC application.
 
-Keep it **isolated** from VDC:
+| Component | Configuration |
+|-----------|----------------|
+| URL | `https://assessment.vehicledailycheck.com` |
+| Process | `spotter-eld-api.service` (gunicorn on `127.0.0.1:8001`) |
+| Database | Postgres `spotter_eld` (separate from VDC) |
+| Application root | `/var/www/spotter-eld/` |
+| Frontend | Same-origin `/api` (empty `VITE_API_BASE_URL`) |
 
-| Piece | Rule |
-|-------|------|
-| Subdomain | Dedicated (`assessment.…`), not inside the VDC app |
-| Django process | Separate gunicorn/systemd unit |
-| Database | Separate Postgres DB (`spotter_eld`) — never VDC’s DB |
-| Env / secrets | Separate `.env` |
-| Code | This repo only |
+Deploy runbook: [`docs/deploy/assessment-vehicledailycheck.md`](docs/deploy/assessment-vehicledailycheck.md)
 
-### Phase 5 — go live (Vultr)
-
-**Live URL:** https://assessment.vehicledailycheck.com  
-
-Full runbook: [`docs/deploy/assessment-vehicledailycheck.md`](docs/deploy/assessment-vehicledailycheck.md)
-
-| Piece | Value |
-|-------|--------|
-| gunicorn | `127.0.0.1:8001` (VDC keeps `8000`) |
-| DB | `spotter_eld` |
-| Code | `/var/www/spotter-eld/` |
-| systemd | `spotter-eld-api.service` (`www-data`) |
-| Redeploy | `cd /var/www/spotter-eld/repo && sudo bash scripts/deploy-spotter-eld.sh` |
-
-Frontend production uses **same-origin** `/api` (empty `VITE_API_BASE_URL`).
-
-Loom note: *“Dedicated subdomain on my VPS, isolated from Vehicle Daily Check.”*
-
-The brief suggests Vercel/Railway — that is a **suggestion**. A clean HTTPS demo URL matters more.
-
-## Database name (create this)
-
-```text
-spotter_eld
+```bash
+cd /var/www/spotter-eld/repo && sudo bash scripts/deploy-spotter-eld.sh
 ```
 
-### Local Postgres (Windows / psql)
+The deploy script updates only Spotter paths and services. It does not restart Vehicle Daily Check or modify VDC configuration.
+
+## Local database
+
+Database name: `spotter_eld`
 
 ```sql
 CREATE DATABASE spotter_eld;
@@ -55,35 +37,31 @@ CREATE DATABASE spotter_eld;
 -- GRANT ALL PRIVILEGES ON DATABASE spotter_eld TO spotter_eld;
 ```
 
-Or CLI:
-
 ```bash
 createdb spotter_eld
 ```
 
-Default local connection (override in `backend/.env`):
+Default connection (override in `backend/.env`):
 
-| Var | Default |
-|-----|---------|
+| Variable | Default |
+|----------|---------|
 | `POSTGRES_DB` | `spotter_eld` |
 | `POSTGRES_USER` | `postgres` |
 | `POSTGRES_PASSWORD` | `postgres` |
 | `POSTGRES_HOST` | `127.0.0.1` |
 | `POSTGRES_PORT` | `5432` |
 
-You can also set `DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/spotter_eld`.
+Alternatively: `DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/spotter_eld`.
 
-> The API is mostly **stateless** (no trip persistence yet). Postgres still runs Django’s system tables and matches production. Do **not** use SQLite.
+The API does not persist trip plans; Postgres is used for Django system tables and parity with production. Do not use SQLite.
 
 ## Quick start
 
 ### Backend
 
 ```powershell
-# 1) Create DB spotter_eld (see above)
-# 2) Copy env
 copy backend\.env.example backend\.env
-# edit POSTGRES_PASSWORD if needed
+# create database spotter_eld; set POSTGRES_PASSWORD if needed
 
 py -3.13 -m venv .venv
 .\.venv\Scripts\Activate.ps1
@@ -103,46 +81,44 @@ npm run dev
 npm test
 ```
 
-Open http://127.0.0.1:5173 — Vite proxies `/api` → Django `:8000`.
+Open http://127.0.0.1:5173. Vite proxies `/api` to Django on port `8000`.
 
 ## Architecture
 
 ```
 backend/hos/           Pure-Python HOS scheduler (unit-tested)
-backend/trips/         DRF API + Nominatim/Photon + OSRM
-frontend/              React + Vite + TS + Tailwind + Leaflet
+backend/trips/         DRF API, geocoding (Nominatim/Photon), routing (OSRM)
+frontend/              React + Vite + TypeScript + Tailwind + Leaflet
   components/EldLogSheet.tsx   Paper-style FMCSA daily grids (SVG)
 ```
 
-`POST /api/trips/plan/` → geocode → route → HOS plan → JSON.
+`POST /api/trips/plan/` geocodes locations, builds a route, applies HOS rules, and returns JSON for the map, stops, timeline, and log sheets.
 
 ## Daily log sheets
 
-- Classic 4-row graph: Off Duty / Sleeper / Driving / On Duty (Not Driving)
-- Multi-day → one sheet per calendar day; gaps filled as Off Duty → **24:00** totals
+- Four-row duty graph: Off Duty, Sleeper Berth, Driving, On Duty (Not Driving)
+- One sheet per calendar day; gaps filled as Off Duty so row totals equal **24:00**
 
-## HOS assumptions
+## HOS model
 
-Property-carrying, **70 hrs / 8 days**: 11h drive, 14h window, 30-min after 8h drive, 10h reset, 34h restart, fuel every 1,000 mi, 1h on-duty pickup & dropoff.
+Property-carrying, **70 hours / 8 days**: 11-hour drive limit, 14-hour window, 30-minute break after 8 hours of driving, 10-hour reset, 34-hour restart, fuel stop every 1,000 miles, and one hour on-duty for pickup and dropoff.
 
-## Demo presets (in UI)
+## Demo presets
 
-| Preset | Route | Cycle |
-|--------|-------|-------|
-| Short same-day | Chicago → Indy → Cincinnati | 12 h |
-| Multi-day haul | Chicago → Denver → LA | 5 h |
-| High cycle used | Chicago → Indy → Cincinnati | 68 h |
+| Preset | Route | Cycle used |
+|--------|-------|------------|
+| Short same-day | Chicago → Indianapolis → Cincinnati | 12 h |
+| Multi-day haul | Chicago → Denver → Los Angeles | 5 h |
+| High cycle used | Chicago → Indianapolis → Cincinnati | 68 h |
 
-### Loom / QA checklist
+### Verification checklist
 
-Click each demo preset and confirm:
+1. **Short same-day** — map and stop pins, duty timeline, one daily log sheet; totals ≈ 24:00.
+2. **Multi-day haul** — multiple log sheets; fuel and rest markers on the map and timeline.
+3. **High cycle used** — 34-hour restart visible; cycle warning shown in the plan banner.
 
-1. **Short same-day** — map + stop pins, duty timeline, **1** daily log sheet; row totals ≈ **24:00**.
-2. **Multi-day haul** — multiple log sheets (day tabs); fuel and rest markers on map/timeline.
-3. **High cycle used** — **34h restart** stop/event visible; cycle warning in the plan banner.
+Log sheets should remain readable on desktop and at mobile widths (horizontal scroll is expected).
 
-Also: log sheets should stay paper-like (USDOT header, 4-row grid, remarks) on desktop and at mobile width (horizontal scroll OK).
+## Scope exclusions
 
-## Out of scope
-
-No auth product features, VDC coupling, paid map APIs, or ELD hardware.
+Authentication product features, Vehicle Daily Check integration, paid mapping APIs, and ELD hardware connectivity are out of scope.

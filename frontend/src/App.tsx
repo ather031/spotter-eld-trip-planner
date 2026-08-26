@@ -65,7 +65,7 @@ export default function App() {
     <div className="mx-auto min-h-screen max-w-6xl px-4 pb-16 pt-8 sm:px-6 lg:px-8">
       <header className="no-print animate-fade-up mb-8">
         <p className="font-display text-sm font-semibold uppercase tracking-[0.28em] text-signal">
-          Spotter assessment
+          HOS trip planner
         </p>
         <h1 className="mt-1 flex flex-wrap items-center gap-3 font-display text-5xl font-bold uppercase leading-none tracking-wide text-ink sm:text-6xl">
           <span className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-slate-panel text-signal sm:h-14 sm:w-14">

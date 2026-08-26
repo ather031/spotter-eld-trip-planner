@@ -1,51 +1,54 @@
-# Deploy Spotter ELD → https://assessment.vehicledailycheck.com
+# Deploy Spotter ELD
 
-Isolated assessment app on the same Vultr VPS as Vehicle Daily Check.
+**URL:** https://assessment.vehicledailycheck.com
 
-| Piece | Spotter | Do **not** use |
-|-------|---------|----------------|
-| URL | `assessment.vehicledailycheck.com` | VDC apex / `app.` for this app |
+Isolated deployment on the same Vultr VPS as Vehicle Daily Check. Spotter must not share VDC paths, database, environment files, or process units.
+
+| Component | Spotter | Do not use |
+|-----------|---------|------------|
+| URL | `assessment.vehicledailycheck.com` | VDC apex or `app.` hostnames |
 | Code | `/var/www/spotter-eld/` | `/var/www/vehicledailycheck/` |
-| DB | `spotter_eld` | VDC database |
-| Env | `/var/www/spotter-eld/api/.env` | VDC `.env` |
+| Database | `spotter_eld` | VDC database |
+| Environment | `/var/www/spotter-eld/api/.env` | VDC `.env` |
 | systemd | `spotter-eld-api.service` | `vehicledailycheck-api.service` |
 | gunicorn | `127.0.0.1:8001` | `127.0.0.1:8000` (VDC) |
 | nginx | `assessment.vehicledailycheck.com.conf` | VDC site configs |
 
 WSGI module: `config.wsgi:application`  
-Frontend prod: relative `/api` (empty `VITE_API_BASE_URL`).
+Production frontend: same-origin `/api` (empty `VITE_API_BASE_URL`).
 
 ---
 
-## Safety checklist (before every command)
+## Isolation checklist
 
-- [ ] Port **8001** only for Spotter
-- [ ] DB name **`spotter_eld`**
-- [ ] Paths only under **`/var/www/spotter-eld`**
-- [ ] Do **not** stop/restart `vehicledailycheck-api`
-- [ ] Do **not** edit VDC `.env` or VDC nginx
+Before running install or deploy commands:
+
+- [ ] Spotter API listens on port **8001** only
+- [ ] Database name is **`spotter_eld`**
+- [ ] All paths are under **`/var/www/spotter-eld`**
+- [ ] Do not stop or restart `vehicledailycheck-api`
+- [ ] Do not edit VDC `.env` or VDC nginx configuration
 
 ---
 
-## A) DNS (Hostinger)
+## 1. DNS
 
-1. Add **A** record: host `assessment` → same Vultr IP as `vehicledailycheck.com` (`78.141.194.242`).
-2. Wait for propagation:
+Add an **A** record: host `assessment` → Vultr IP `78.141.194.242` (same as `vehicledailycheck.com`).
 
 ```bash
 dig +short assessment.vehicledailycheck.com
-# expect: 78.141.194.242
+# expected: 78.141.194.242
 ```
 
 ---
 
-## B) Postgres (on VPS) — you already created the DB
+## 2. Postgres
 
 ```bash
 sudo -u postgres psql -c "CREATE DATABASE spotter_eld;"
 ```
 
-Recommended dedicated role (do this next if you haven’t):
+Recommended dedicated role:
 
 ```bash
 sudo -u postgres psql <<'SQL'
@@ -57,11 +60,11 @@ ALTER SCHEMA public OWNER TO spotter_eld;
 SQL
 ```
 
-If the role already exists, skip `CREATE USER` and only run the `GRANT` / schema lines (and `ALTER USER spotter_eld WITH PASSWORD '...'` if needed).
+If the role already exists, skip `CREATE USER` and apply only the `GRANT` / schema statements (or `ALTER USER` to update the password).
 
 ---
 
-## C) Directories + clone
+## 3. Directories and clone
 
 ```bash
 sudo mkdir -p /var/www/spotter-eld /var/log/spotter-eld /var/www/certbot
@@ -73,29 +76,27 @@ sudo -u deploy git clone https://github.com/ather031/spotter-eld-trip-planner.gi
 
 ---
 
-## D) Python venv + `.env` + first migrate
+## 4. Python environment, `.env`, and migrate
 
 ```bash
 sudo mkdir -p /var/www/spotter-eld/api
 sudo -u deploy python3 -m venv /var/www/spotter-eld/api/.venv
 
-# Sync backend once (or wait for deploy script)
 sudo -u deploy rsync -a --delete \
   --exclude '.venv' --exclude '.env' --exclude '__pycache__' --exclude 'staticfiles' \
   /var/www/spotter-eld/repo/backend/ /var/www/spotter-eld/api/
 
 sudo -u deploy cp /var/www/spotter-eld/repo/deploy/env.production.example /var/www/spotter-eld/api/.env
 sudo -u deploy nano /var/www/spotter-eld/api/.env
-# Set DJANGO_SECRET_KEY, DATABASE_URL (or POSTGRES_*), hosts already filled for assessment.*
 ```
+
+Set at least `DJANGO_SECRET_KEY` and `DATABASE_URL` (or discrete `POSTGRES_*` variables). Host-related values in the example are already scoped to `assessment.vehicledailycheck.com`.
 
 Generate a secret:
 
 ```bash
 python3 -c "import secrets; print(secrets.token_hex(32))"
 ```
-
-Then:
 
 ```bash
 cd /var/www/spotter-eld/api
@@ -107,7 +108,7 @@ sudo chmod 600 /var/www/spotter-eld/api/.env
 
 ---
 
-## E) Install systemd + nginx
+## 5. systemd and nginx
 
 ```bash
 sudo cp /var/www/spotter-eld/repo/deploy/systemd/spotter-eld-api.service /etc/systemd/system/
@@ -122,18 +123,17 @@ sudo ln -sf /etc/nginx/sites-available/assessment.vehicledailycheck.com.conf \
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
-Check API locally (does not touch VDC):
+Local health check (does not affect VDC):
 
 ```bash
 curl -fsS http://127.0.0.1:8001/api/health/
-# {"status":"ok",...}
 ```
 
 ---
 
-## F) TLS
+## 6. TLS
 
-DNS must already point here.
+DNS must resolve to this server before issuing a certificate.
 
 ```bash
 sudo certbot --nginx -d assessment.vehicledailycheck.com
@@ -141,18 +141,18 @@ sudo certbot --nginx -d assessment.vehicledailycheck.com
 
 ---
 
-## G) Build + full deploy
+## 7. Build and deploy
 
 ```bash
 cd /var/www/spotter-eld/repo
 sudo bash scripts/deploy-spotter-eld.sh
 ```
 
-This pulls latest `main`, syncs API, migrates, builds frontend to `/var/www/spotter-eld/web`, chowns for `www-data`, restarts **only** `spotter-eld-api`, reloads nginx.
+The script pulls `main`, syncs the API, runs migrations, builds the frontend into `/var/www/spotter-eld/web`, sets ownership for `www-data`, restarts **only** `spotter-eld-api`, and reloads nginx.
 
 ---
 
-## H) Verify
+## 8. Verification
 
 ```bash
 sudo systemctl status spotter-eld-api --no-pager
@@ -171,11 +171,13 @@ curl -fsS -X POST https://assessment.vehicledailycheck.com/api/trips/plan/ \
 echo
 ```
 
-Open the site in a browser and run a demo preset.
+Open the site and exercise the three demo presets (short, multi-day, high cycle).
 
 ---
 
-## Routine redeploy (after you push to GitHub)
+## Routine redeploy
+
+After pushing to GitHub:
 
 ```bash
 cd /var/www/spotter-eld/repo
@@ -184,17 +186,17 @@ sudo bash scripts/deploy-spotter-eld.sh
 
 ---
 
-## Loom note
+## Hosting summary
 
-> Deployed on a dedicated subdomain (`assessment.vehicledailycheck.com`) on my VPS — isolated process, database, and nginx site from Vehicle Daily Check.
+> Deployed on a dedicated subdomain (`assessment.vehicledailycheck.com`) with an isolated process, database, and nginx site — separate from Vehicle Daily Check.
 
 ---
 
-## Manual vs in-repo
+## Responsibilities
 
-| You (SSH / Hostinger) | In this repo |
-|-----------------------|--------------|
+| Manual (SSH / DNS) | In this repository |
+|--------------------|--------------------|
 | DNS A record | `deploy/nginx/...` |
-| `CREATE DATABASE` / role | `deploy/env.production.example` |
-| Clone, fill `.env`, certbot | `scripts/deploy-spotter-eld.sh` |
-| Run deploy script | `docs/deploy/assessment-vehicledailycheck.md` |
+| Database and role creation | `deploy/env.production.example` |
+| Clone, `.env`, certbot | `scripts/deploy-spotter-eld.sh` |
+| Run deploy script | This runbook |
