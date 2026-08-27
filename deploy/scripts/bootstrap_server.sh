@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # One-time server bootstrap for Spotter ELD (run with sudo or as root-capable deploy).
-# Does NOT modify Vehicle Daily Check nginx/systemd/env.
+# Bootstrap Spotter ELD on the VPS (nginx / systemd / Postgres).
 set -euo pipefail
 
 DOMAIN=assessment.vehicledailycheck.com

@@ -3,8 +3,7 @@
 # Run on the server (needs sudo for systemctl/nginx/chown):
 #   cd /var/www/spotter-eld/repo && sudo bash scripts/deploy-spotter-eld.sh
 #
-# Isolation: only touches /var/www/spotter-eld, spotter-eld-api, assessment nginx site.
-# Never restarts vehicledailycheck-api or edits VDC .env.
+# Touches only /var/www/spotter-eld, spotter-eld-api, and the assessment nginx site.
 set -euo pipefail
 
 ROOT=/var/www/spotter-eld

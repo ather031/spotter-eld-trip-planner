@@ -1,39 +1,25 @@
-# Deploy Spotter ELD
+# Production deploy
 
-**URL:** https://assessment.vehicledailycheck.com
+**Live URL:** https://assessment.vehicledailycheck.com
 
-Isolated deployment on the same Vultr VPS as Vehicle Daily Check. Spotter must not share VDC paths, database, environment files, or process units.
+| Component | Value |
+|-----------|--------|
+| Domain | `assessment.vehicledailycheck.com` |
+| App root | `/var/www/spotter-eld/` |
+| Database | Postgres `spotter_eld` |
+| Environment | `/var/www/spotter-eld/api/.env` |
+| systemd | `spotter-eld-api.service` |
+| gunicorn | `127.0.0.1:8001` |
+| nginx site | `assessment.vehicledailycheck.com.conf` |
 
-| Component | Spotter | Do not use |
-|-----------|---------|------------|
-| URL | `assessment.vehicledailycheck.com` | VDC apex or `app.` hostnames |
-| Code | `/var/www/spotter-eld/` | `/var/www/vehicledailycheck/` |
-| Database | `spotter_eld` | VDC database |
-| Environment | `/var/www/spotter-eld/api/.env` | VDC `.env` |
-| systemd | `spotter-eld-api.service` | `vehicledailycheck-api.service` |
-| gunicorn | `127.0.0.1:8001` | `127.0.0.1:8000` (VDC) |
-| nginx | `assessment.vehicledailycheck.com.conf` | VDC site configs |
-
-WSGI module: `config.wsgi:application`  
-Production frontend: same-origin `/api` (empty `VITE_API_BASE_URL`).
-
----
-
-## Isolation checklist
-
-Before running install or deploy commands:
-
-- [ ] Spotter API listens on port **8001** only
-- [ ] Database name is **`spotter_eld`**
-- [ ] All paths are under **`/var/www/spotter-eld`**
-- [ ] Do not stop or restart `vehicledailycheck-api`
-- [ ] Do not edit VDC `.env` or VDC nginx configuration
+WSGI: `config.wsgi:application`  
+Frontend production build uses same-origin `/api` (empty `VITE_API_BASE_URL`).
 
 ---
 
 ## 1. DNS
 
-Add an **A** record: host `assessment` → Vultr IP `78.141.194.242` (same as `vehicledailycheck.com`).
+Add an **A** record: host `assessment` → server IP `78.141.194.242`.
 
 ```bash
 dig +short assessment.vehicledailycheck.com
@@ -90,7 +76,7 @@ sudo -u deploy cp /var/www/spotter-eld/repo/deploy/env.production.example /var/w
 sudo -u deploy nano /var/www/spotter-eld/api/.env
 ```
 
-Set at least `DJANGO_SECRET_KEY` and `DATABASE_URL` (or discrete `POSTGRES_*` variables). Host-related values in the example are already scoped to `assessment.vehicledailycheck.com`.
+Set at least `DJANGO_SECRET_KEY` and `DATABASE_URL` (or discrete `POSTGRES_*` variables). Host values in the example already target `assessment.vehicledailycheck.com`.
 
 Generate a secret:
 
@@ -123,7 +109,7 @@ sudo ln -sf /etc/nginx/sites-available/assessment.vehicledailycheck.com.conf \
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
-Local health check (does not affect VDC):
+Local health check:
 
 ```bash
 curl -fsS http://127.0.0.1:8001/api/health/
@@ -148,7 +134,7 @@ cd /var/www/spotter-eld/repo
 sudo bash scripts/deploy-spotter-eld.sh
 ```
 
-The script pulls `main`, syncs the API, runs migrations, builds the frontend into `/var/www/spotter-eld/web`, sets ownership for `www-data`, restarts **only** `spotter-eld-api`, and reloads nginx.
+The script pulls `main`, syncs the API, runs migrations, builds the frontend into `/var/www/spotter-eld/web`, sets ownership for `www-data`, restarts `spotter-eld-api`, and reloads nginx.
 
 ---
 
@@ -186,17 +172,15 @@ sudo bash scripts/deploy-spotter-eld.sh
 
 ---
 
-## Hosting summary
+## Layout
 
-> Deployed on a dedicated subdomain (`assessment.vehicledailycheck.com`) with an isolated process, database, and nginx site — separate from Vehicle Daily Check.
+```text
+/var/www/spotter-eld/
+├── repo/     # git clone
+├── web/      # built React dist (nginx root)
+└── api/      # Django + .venv + .env
 
----
-
-## Responsibilities
-
-| Manual (SSH / DNS) | In this repository |
-|--------------------|--------------------|
-| DNS A record | `deploy/nginx/...` |
-| Database and role creation | `deploy/env.production.example` |
-| Clone, `.env`, certbot | `scripts/deploy-spotter-eld.sh` |
-| Run deploy script | This runbook |
+/var/log/spotter-eld/
+├── access.log
+└── error.log
+```
