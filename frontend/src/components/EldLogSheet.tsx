@@ -697,7 +697,11 @@ export function EldLogSheets({ plan }: EldLogSheetsProps) {
                 }`}
               >
                 Day {day.dayIndex + 1}
-                <span className="ml-1.5 font-normal normal-case tracking-normal text-ink/50">
+                <span
+                  className={`ml-1.5 font-normal normal-case tracking-normal ${
+                    isActive ? 'text-fog/75' : 'text-ink/50'
+                  }`}
+                >
                   · {formatLogSheetDateCompact(day.calendarDate)}
                 </span>
               </button>
