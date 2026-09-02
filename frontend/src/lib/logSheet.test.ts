@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { DayLogSegment, StopMarker } from '../types'
-import type { TripPlanResponse } from '../types'
+import type { DayLogSegment, StopMarker, TripPlanResponse } from '../types'
 import {
   assertDayTotalsNear24,
   buildDayLogs,
@@ -10,6 +9,27 @@ import {
   formatLogSheetDate,
   totalsFor,
 } from './logSheet'
+
+function planStub(overrides: Partial<TripPlanResponse> = {}): TripPlanResponse {
+  const geo = { lat: 0, lon: 0, display_name: 'Test', source: 'test' }
+  return {
+    locations: { current: geo, pickup: geo, dropoff: geo },
+    route: {
+      geometry: [],
+      distance_miles: 0,
+      duration_hours: 0,
+      legs: [],
+      provider: 'test',
+    },
+    stops: [],
+    events: [],
+    day_segments: [],
+    summary: null,
+    warnings: [],
+    meta: {},
+    ...overrides,
+  }
+}
 
 describe('fillDaySegments', () => {
   it('fills leading and trailing gaps as off duty to 24h', () => {
@@ -121,7 +141,7 @@ describe('buildRemarks', () => {
 
 describe('buildDayLogs calendar dates', () => {
   it('assigns consecutive calendar dates from trip_start_date', () => {
-    const plan = {
+    const plan = planStub({
       meta: { trip_start_date: '2026-01-30' },
       day_segments: [
         {
@@ -134,10 +154,22 @@ describe('buildDayLogs calendar dates', () => {
           miles: 0,
         },
       ],
-      stops: [],
-      events: [],
-      summary: { days_required: 3 },
-    } as TripPlanResponse
+      summary: {
+        total_miles: 0,
+        total_driving_hours: 0,
+        total_on_duty_hours: 0,
+        total_off_duty_hours: 0,
+        trip_duration_hours: 0,
+        days_required: 3,
+        fuel_stops: 0,
+        breaks_30: 0,
+        rests_10: 0,
+        restarts_34: 0,
+        cycle_used_at_start: 0,
+        cycle_used_at_end: 0,
+        cycle_remaining_at_end: 70,
+      },
+    })
 
     const days = buildDayLogs(plan)
     expect(days).toHaveLength(3)
