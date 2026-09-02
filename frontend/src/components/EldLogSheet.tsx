@@ -5,6 +5,8 @@ import {
   DUTY_ROWS,
   assertDayTotalsNear24,
   buildDayLogs,
+  formatLogSheetDate,
+  formatLogSheetDateCompact,
   dutyLinePoints,
   shortenRemarkLabel,
   type DayLogModel,
@@ -161,9 +163,7 @@ export function EldLogSheet({
   const drivingMiles = Math.round(
     day.segments.filter((s) => s.status === 'driving').reduce((a, s) => a + s.miles, 0),
   )
-  const month = String(((day.dayIndex % 12) + 1)).padStart(2, '0')
-  const dayNum = String((day.dayIndex % 28) + 1).padStart(2, '0')
-  const year = '2026'
+  const dateLabel = formatLogSheetDate(day.calendarDate)
   const pro = shippingNo ?? `${fromLabel ?? 'PU'} → ${toLabel ?? 'DO'}`
 
   const remarks = day.remarks
@@ -218,7 +218,7 @@ export function EldLogSheet({
         {/* Date | Miles | Vehicles — value then caption, no shared line collision */}
         <g style={{ fontFamily: 'IBM Plex Sans, sans-serif' }}>
           <text x={PAD} y={88} fill={INK} style={{ fontSize: 13, fontWeight: 700 }}>
-            {month} / {dayNum} / {year}
+            {dateLabel}
           </text>
           <text x={PAD} y={102} fill={INK_MUTED} style={{ fontSize: 8 }}>
             (MONTH) (DAY) (YEAR)
@@ -697,6 +697,9 @@ export function EldLogSheets({ plan }: EldLogSheetsProps) {
                 }`}
               >
                 Day {day.dayIndex + 1}
+                <span className="ml-1.5 font-normal normal-case tracking-normal text-ink/50">
+                  · {formatLogSheetDateCompact(day.calendarDate)}
+                </span>
               </button>
             )
           })}

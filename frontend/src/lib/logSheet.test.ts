@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import type { DayLogSegment, StopMarker } from '../types'
+import type { TripPlanResponse } from '../types'
 import {
   assertDayTotalsNear24,
+  buildDayLogs,
   buildRemarks,
+  calendarDateForLogDay,
   fillDaySegments,
+  formatLogSheetDate,
   totalsFor,
 } from './logSheet'
 
@@ -24,12 +28,13 @@ describe('fillDaySegments', () => {
     const totals = totalsFor(filled)
     expect(totals.driving).toBeCloseTo(4, 3)
     expect(totals.off_duty).toBeCloseTo(20, 3)
-    expect(assertDayTotalsNear24({ 
-      dayIndex: 0, 
-      segments: filled, 
-      totals, 
-      remarks: [], 
-      totalMiles: 200, 
+    expect(assertDayTotalsNear24({
+      dayIndex: 0,
+      calendarDate: { year: 2026, month: 4, day: 9 },
+      segments: filled,
+      totals,
+      remarks: [],
+      totalMiles: 200,
       coveredHours: Object.values(totals).reduce((a, b) => a + b, 0),
     })).toBe(true)
   })
@@ -111,5 +116,40 @@ describe('buildRemarks', () => {
     const breakish = remarks.filter((r) => /break/i.test(r.text))
     expect(breakish.length).toBe(1)
     expect(remarks.some((r) => /fuel/i.test(r.text))).toBe(true)
+  })
+})
+
+describe('buildDayLogs calendar dates', () => {
+  it('assigns consecutive calendar dates from trip_start_date', () => {
+    const plan = {
+      meta: { trip_start_date: '2026-01-30' },
+      day_segments: [
+        {
+          day_index: 0,
+          status: 'off_duty',
+          start_hour_of_day: 0,
+          end_hour_of_day: 24,
+          duration_hours: 24,
+          label: 'Off duty',
+          miles: 0,
+        },
+      ],
+      stops: [],
+      events: [],
+      summary: { days_required: 3 },
+    } as TripPlanResponse
+
+    const days = buildDayLogs(plan)
+    expect(days).toHaveLength(3)
+    expect(days[0].calendarDate).toEqual({ year: 2026, month: 1, day: 30 })
+    expect(days[1].calendarDate).toEqual({ year: 2026, month: 1, day: 31 })
+    expect(days[2].calendarDate).toEqual({ year: 2026, month: 2, day: 1 })
+    expect(formatLogSheetDate(days[0].calendarDate)).toBe('01 / 30 / 2026')
+    expect(formatLogSheetDate(days[2].calendarDate)).toBe('02 / 01 / 2026')
+  })
+
+  it('rolls year boundary correctly', () => {
+    expect(calendarDateForLogDay('2026-12-31', 0)).toEqual({ year: 2026, month: 12, day: 31 })
+    expect(calendarDateForLogDay('2026-12-31', 1)).toEqual({ year: 2027, month: 1, day: 1 })
   })
 })

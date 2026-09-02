@@ -23,8 +23,15 @@ export interface DayRemark {
   text: string
 }
 
+export interface CalendarDate {
+  year: number
+  month: number
+  day: number
+}
+
 export interface DayLogModel {
   dayIndex: number
+  calendarDate: CalendarDate
   segments: FilledSegment[]
   totals: Record<DutyStatus, number>
   remarks: DayRemark[]
@@ -219,6 +226,43 @@ export function buildRemarks(
   return remarks.sort((a, b) => a.time - b.time || a.text.localeCompare(b.text)).slice(0, 10)
 }
 
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/
+
+export function inferTripStartDate(plan: TripPlanResponse): string {
+  const meta = plan.meta?.trip_start_date
+  if (typeof meta === 'string' && ISO_DATE_RE.test(meta)) {
+    return meta
+  }
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+/** Calendar date for a log sheet day (start date + dayIndex calendar days). */
+export function calendarDateForLogDay(startIso: string, dayIndex: number): CalendarDate {
+  const [y, m, d] = startIso.split('-').map(Number)
+  const dt = new Date(y, m - 1, d + dayIndex)
+  return {
+    year: dt.getFullYear(),
+    month: dt.getMonth() + 1,
+    day: dt.getDate(),
+  }
+}
+
+export function formatLogSheetDate(date: CalendarDate): string {
+  const month = String(date.month).padStart(2, '0')
+  const day = String(date.day).padStart(2, '0')
+  return `${month} / ${day} / ${date.year}`
+}
+
+export function formatLogSheetDateCompact(date: CalendarDate): string {
+  const month = String(date.month).padStart(2, '0')
+  const day = String(date.day).padStart(2, '0')
+  return `${month}/${day}/${date.year}`
+}
+
 export function inferStartHourOfDay(plan: TripPlanResponse): number {
   const metaHour = plan.meta?.start_hour_of_day
   if (typeof metaHour === 'number' && Number.isFinite(metaHour)) {
@@ -236,6 +280,7 @@ export function inferStartHourOfDay(plan: TripPlanResponse): number {
 
 export function buildDayLogs(plan: TripPlanResponse): DayLogModel[] {
   const startHour = inferStartHourOfDay(plan)
+  const tripStartDate = inferTripStartDate(plan)
   const byDay = new Map<number, DayLogSegment[]>()
   for (const seg of plan.day_segments) {
     const list = byDay.get(seg.day_index) ?? []
@@ -254,6 +299,7 @@ export function buildDayLogs(plan: TripPlanResponse): DayLogModel[] {
     const coveredHours = DUTY_ROWS.reduce((sum, k) => sum + totals[k], 0)
     days.push({
       dayIndex: d,
+      calendarDate: calendarDateForLogDay(tripStartDate, d),
       segments: filled,
       totals,
       remarks: buildRemarks(filled, plan.stops, d, startHour),

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
 
 from django.conf import settings
@@ -134,6 +135,7 @@ def plan_trip_from_locations(
             "average_speed_note": "Leg durations come from OSRM; HOS clocks use those hours.",
             "map_provider": getattr(settings, "MAP_TILE_ATTRIBUTION", "© OpenStreetMap"),
             "start_hour_of_day": start_hour_of_day,
+            "trip_start_date": date.today().isoformat(),
         },
     }
 
